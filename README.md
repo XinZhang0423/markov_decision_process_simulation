@@ -5,10 +5,10 @@
 This repository contains a Python simulation of Markov Decision Process (MDP) using Antlr4, Matplotlib and NetworkX. The simulation allows users to model, solve and visualize various MDP problems.
 
 # Requirements
-Python 3.x
-Antlr4
-Matplotlib
-NetworkX
+- Python 3.x
+- Antlr4
+- Matplotlib
+- NetworkX
 
 # Installation
 ```bash
