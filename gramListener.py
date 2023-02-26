@@ -26,6 +26,24 @@ class gramListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by gramParser#statenorew.
+    def enterStatenorew(self, ctx:gramParser.StatenorewContext):
+        pass
+
+    # Exit a parse tree produced by gramParser#statenorew.
+    def exitStatenorew(self, ctx:gramParser.StatenorewContext):
+        pass
+
+
+    # Enter a parse tree produced by gramParser#staterew.
+    def enterStaterew(self, ctx:gramParser.StaterewContext):
+        pass
+
+    # Exit a parse tree produced by gramParser#staterew.
+    def exitStaterew(self, ctx:gramParser.StaterewContext):
+        pass
+
+
     # Enter a parse tree produced by gramParser#defactions.
     def enterDefactions(self, ctx:gramParser.DefactionsContext):
         pass

@@ -9,7 +9,7 @@ import random
 from itertools import accumulate
 from time import sleep
 from math import sqrt
-#import pygraphviz as pgv 这两个库都👎
+# import pygraphviz as pgv 这两个库都👎
 # import networkx as nx
 # import pydot 
 # from IPython.display import Image, display
@@ -25,9 +25,14 @@ class gramPrintListener(gramListener):
     #简单理解就是有四个方法，每个方法会读取对应的状态，决策和转移方程
     def __init__(self):
         pass
+     
+    def enterStaterew(self, ctx):
+        print("States :%s, " % str([str(x) for x in ctx.ID()]))
+        print("Rewards :%s, " % str([str(x) for x in ctx.INT()]))
         
-    def enterDefstates(self, ctx):
-        print("States: %s" % str([str(x) for x in ctx.ID()]))
+    def enterStatenorew(self, ctx):
+        print("States :%s, " % str([str(x) for x in ctx.ID()]))
+       
 
     def enterDefactions(self, ctx):
         print("Actions: %s" % str([str(x) for x in ctx.ID()]))
@@ -64,8 +69,17 @@ class gramMDPListener(gramListener):
     def __init__(self):
         self.states = []
         self.actions = []
-
-    def enterDefstates(self, ctx):
+    
+    #带reward的版本：    
+    def enterStaterew(self, ctx):
+        #把对应的reward存到state里
+        self.states = [State(str(x),i) for i,x in enumerate(ctx.ID())]
+        rewards=[int(str(x)) for x in ctx.INT()]
+        print(rewards)
+        for i,s in enumerate(self.states):
+            s.rew=rewards[i]
+    #不带reward的版本：    
+    def enterStatenorew(self, ctx):
         #先把状态都初始化出来，默认identity是按顺序的
         self.states = [State(str(x),i) for i,x in enumerate(ctx.ID())]
         
@@ -79,16 +93,19 @@ class gramMDPListener(gramListener):
         dep = ids.pop(0)
         #decision
         act = ids.pop(0)
+        
         #所有的weights按顺序
         weights = [int(str(x)) for x in ctx.INT()]
         #剩下所有的to_state按顺序
         targets = ids
         total_weights=sum(weights)
         
-        #每一个to_state都存成一个transition
+        # 找到当前的name存成一个state
         for state in self.states:
             if state.name==dep:
                 current_state = state
+                
+        current_state.actions.append(act)
                 
         for i,target in enumerate(targets):
             proba=weights[i]/total_weights
@@ -100,7 +117,6 @@ class gramMDPListener(gramListener):
             t_i.add_tostate(current_target)
             t_i.add_proba(proba)
         current_state.add_transition(t_i)
-
 
                     
     def enterTransnoact(self, ctx):
@@ -137,22 +153,28 @@ class State():
     """
     创建一个State类，用于存
     1. 状态名字,号码 name，identity
-    2. 每一个状态可以选择的决策actions的列表 actions
-    3. 每个状态拥有的转移transtion的列表 transitions transition的定义见transition类
+    2. 每个状态拥有的actions的列表，用于检查模型错误
+    3. 每个状态拥有的reward，一个数（可以为none，意思是不考虑reward的模型），可以理解为从这个状态出来获得的奖励
+    4. 每个状态拥有的转移transtion的列表 类
     """
-    def __init__(self,name,identity):
+    
+    def __init__(self,name,identity,reward=None):
         self.name=name
         self.id=identity
+        self.rew=reward
         self.actions=[]
         self.transitions=[]
-     
+    
+    def __str__(self):
+        return self.name
+    
     #下面两个方法用于在listener中调用，存储对应的action和transition   
     def add_transition(self,transition):
         self.transitions.append(transition)
     
     def add_action(self,action):
         self.actions.append(action)
-
+            
 class Transition():
     """
         定义一个transition
@@ -162,8 +184,8 @@ class Transition():
         self.from_state = from_state
         self.action = action
         self.to_states =[]
-        self.probas = []
-
+        self.probas = []    
+    
     def add_tostate(self,state):
         self.to_states.append(state)
     
@@ -185,6 +207,8 @@ class MarkovDecisionProcess():
     times：模拟的步数。
     random_mode：是否是随机选择决策的模式，如果是随机的话，为True；反之，为False。
     init：初始状态，如果不指定，则使用MDP模型中的初始状态。
+    reward_mode:如果使用reward_mode则会返回最后积累的reward的和
+    
     函数的执行过程：
 
     创建一个列表history来存储每一步状态的名字。
@@ -200,11 +224,23 @@ class MarkovDecisionProcess():
         self.states = states
         self.actions = actions
         self.init=states[0]
+    
+    def __str__(self):
+        return str([s.name for s in self.states])
+        
+    def check(self):
+        for state in self.states:
+            if len(state.actions)!=len(state.transitions):
+                    print(f"error! {state.name} has a not-welldefined transaction !")                
+            for act in state.actions:
+                if act not in self.actions:
+                    print(f"warning! {state.name}'s {act} is not in defined global actions")
 
-    def simulate(self,times,init=None,random_mode=True):
+    def simulate(self,times,init=None,random_mode=True,reward_mode=False):
         init=self.init if not init else init
         current=init
         history = []
+        reward_final=0
         history.append(current.name)
         for i in range(times):
             #没有决策
@@ -217,12 +253,11 @@ class MarkovDecisionProcess():
                     if p<pc:
                         current=to_states[i]
                         break
-                    
             else:
                 if random_mode:
                     act_id=random.choice(range(len(current.actions)))
                     act=current.actions[act_id]
-                    print(f"current choice is {act}")
+                    print(f"current choice {i} is {act}")
                     p=random.uniform(0,1)
                     t_act=current.transitions[act_id]
                     to_states=t_act.to_states
@@ -247,8 +282,14 @@ class MarkovDecisionProcess():
                         if p<pc:
                             current=to_states[i]
                             break
+            if reward_mode and i!=times-1:
+                reward_final+=current.rew
             history.append(current.name)
-        return history
+
+        if reward_mode:
+            return history,reward_final
+        else:
+            return history
       
 class StateDiagram():
     
@@ -287,7 +328,7 @@ class StateDiagram():
     #我改成了使用pygraphviz库 
     #pygraphviz库也👎最后换成了networkx                                
     def draw(self):
-        pos = nx.spring_layout(self.G,seed=5,scale=20,k=3/sqrt(self.G.order()))
+        pos = nx.spring_layout(self.G,seed=6,scale=20,k=3/sqrt(self.G.order()))
         node_colors = [nx.get_node_attributes(self.G,'color')[node] for node in self.G.nodes]
         
         nx.draw_networkx_nodes(self.G, pos,node_color=node_colors,ax=self.ax)
@@ -411,16 +452,20 @@ def main_mdp():
     walker = ParseTreeWalker()
     walker.walk(mdp_listener, tree)
     mdp = mdp_listener.get_mdp()
-    history=mdp.simulate(10)
-    graphe=StateDiagram(mdp.states,history)
+    mdp.check()
+    print(mdp)
+    history,reward=mdp.simulate(10,reward_mode=True)
+    print(history,reward)
+    #graphe=StateDiagram(mdp.states,history)
     # graphe.load_node(0)
     # graphe.load_edge()
     # graphe.draw()
     # plt.show()
-    graphe.animate()
+    #graphe.animate()
     
 if __name__ == '__main__':
     main_mdp()
+    #main_print()
 
 
 

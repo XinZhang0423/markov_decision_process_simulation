@@ -4,7 +4,12 @@ program
     : defstates defactions transitions EOF
     ;
 
-defstates : STATES ID (',' ID)* ';';
+defstates : staterew | statenorew;
+
+statenorew : STATES ID  (',' ID )* ';' ;
+
+staterew : STATES ID ':'  INT (',' ID ':' INT)* ';';
+
 defactions : ACTIONS ID (',' ID)* ';';
 
 transitions : trans (trans)* ;
