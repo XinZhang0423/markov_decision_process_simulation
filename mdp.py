@@ -355,6 +355,7 @@ class StateDiagram():
     def animate(self):
         ani = FuncAnimation(self.fig, self.update, frames=len(self.history), interval=100,repeat_delay=0.001)
         plt.show()
+        ani.save('./ani.gif')
         
     @staticmethod
     def my_draw_networkx_edge_labels(G,pos,edge_labels=None,label_pos=0.5,font_size=10,font_color="k",
@@ -449,18 +450,21 @@ def main_mdp():
     mdp = mdp_listener.get_mdp()
     mdp.check()
     print(mdp)
-    history,reward=mdp.simulate(10,random_mode=False,reward_mode=True)
+    history,reward=mdp.simulate(10,reward_mode=True)
     print(history,reward)
-    #graphe=StateDiagram(mdp.states,history)
-    # graphe.load_node(0)
-    # graphe.load_edge()
-    # graphe.draw()
-    # plt.show()
-    #graphe.animate()
+    graphe=StateDiagram(mdp.states,history)
+    graphe.load_node(0)
+    graphe.load_edge()
+    graphe.draw()
+    #plt.show()
+    graphe.animate()
     
 if __name__ == '__main__':
     main_mdp()
     #main_print()
+
+
+
 
 
 
