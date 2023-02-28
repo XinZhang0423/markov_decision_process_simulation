@@ -231,7 +231,7 @@ class MarkovDecisionProcess():
         
     def check(self):
         for state in self.states:
-            if len(state.actions)!=len(state.transitions):
+            if state.actions and (len(state.actions)!=len(state.transitions)):
                     print(f"error! {state.name} has a not-welldefined transaction !")                
             for act in state.actions:
                 if act not in self.actions:
@@ -265,8 +265,7 @@ class MarkovDecisionProcess():
                     for i,ac in enumerate(current.actions):
                         if ac==act:
                             act_id=i
-                t_act=current.transitions[act_id]
-                
+                t_act=current.transitions[act_id]     
             p=random.uniform(0,1)   
             to_states=t_act.to_states
             cum_probas=t_act.cumsum_probas()
