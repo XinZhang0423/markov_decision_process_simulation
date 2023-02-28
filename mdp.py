@@ -245,28 +245,12 @@ class MarkovDecisionProcess():
         history.append(current.name)
         for i in range(times):
             #没有决策
-            if not current.actions:
-                p=random.uniform(0,1)
-                t_0=current.transitions[0]
-                to_states=t_0.to_states
-                cum_probas=t_0.cumsum_probas()
-                for i,pc in enumerate(cum_probas):
-                    if p<pc:
-                        current=to_states[i]
-                        break
+            if not current.actions: t_act=current.transitions[0]
             else:
                 if random_mode:
                     act_id=random.choice(range(len(current.actions)))
                     act=current.actions[act_id]
                     print(f"current choice {i} is {act}")
-                    p=random.uniform(0,1)
-                    t_act=current.transitions[act_id]
-                    to_states=t_act.to_states
-                    cum_probas=t_act.cumsum_probas()
-                    for i,pc in enumerate(cum_probas):
-                        if p<pc:
-                            current=to_states[i]
-                            break
                 else:
                     print(current.actions)
                     try:
@@ -281,14 +265,15 @@ class MarkovDecisionProcess():
                     for i,ac in enumerate(current.actions):
                         if ac==act:
                             act_id=i
-                    p=random.uniform(0,1)
-                    t_act=current.transitions[act_id]
-                    to_states=t_act.to_states
-                    cum_probas=t_act.cumsum_probas()           
-                    for i,pc in enumerate(cum_probas):
-                        if p<pc:
-                            current=to_states[i]
-                            break
+                t_act=current.transitions[act_id]
+                
+            p=random.uniform(0,1)   
+            to_states=t_act.to_states
+            cum_probas=t_act.cumsum_probas()
+            for i,pc in enumerate(cum_probas):
+                if p<pc:
+                    current=to_states[i]
+                    break
             if reward_mode and i!=times-1:
                 reward_final+=current.rew
             history.append(current.name)
