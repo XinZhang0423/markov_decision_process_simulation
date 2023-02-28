@@ -3,6 +3,7 @@ from gramLexer import gramLexer
 from gramListener import gramListener
 from gramParser import gramParser
 import sys
+import argparse
 
 import matplotlib.pyplot as plt
 import random
@@ -268,9 +269,15 @@ class MarkovDecisionProcess():
                             break
                 else:
                     print(current.actions)
-                    act=input("please choose an action")
+                    try:
+                        act = input("please choose an action")
+                    except EOFError:
+                        print("No input given")
                     while act not in current.actions:
-                        act=input("invalid action, please choose again!")
+                        try:
+                            act = input("invalid action, please choose again!")
+                        except EOFError:
+                            print("No input given")
                     for i,ac in enumerate(current.actions):
                         if ac==act:
                             act_id=i
@@ -444,7 +451,11 @@ class StateDiagram():
         return text_items
    
 def main_mdp():
-    lexer = gramLexer(StdinStream())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("filename",type=str)
+    args = parser.parse_args()
+    filename=args.filename #'ex.mdp'
+    lexer = gramLexer(FileStream(filename))
     stream = CommonTokenStream(lexer)
     parser = gramParser(stream)
     tree = parser.program()
@@ -454,7 +465,7 @@ def main_mdp():
     mdp = mdp_listener.get_mdp()
     mdp.check()
     print(mdp)
-    history,reward=mdp.simulate(10,reward_mode=True)
+    history,reward=mdp.simulate(10,random_mode=False,reward_mode=True)
     print(history,reward)
     #graphe=StateDiagram(mdp.states,history)
     # graphe.load_node(0)
