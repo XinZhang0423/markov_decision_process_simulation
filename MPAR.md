@@ -95,7 +95,7 @@ WS: [ \t\n\r\f]+ -> skip ;
    
    # 创建输入流
    input_stream = FileStream("input.txt")
-   # 或者使用
+   # 或者使用StdinStream() 读入控制台
    # 创建词法分析器
    lexer = gramLexer(input_stream)
    # 创建词法符号流
@@ -104,13 +104,12 @@ WS: [ \t\n\r\f]+ -> skip ;
    parser = gramParser(token_stream)
    # 调用语法分析器的入口规则
    tree = parser.program()
+   
    ```
    
    这里假设输入源代码保存在名为`input.txt`的文件中，而入口规则名为`program`。您可以根据需要更改这些值。执行以上代码，将会得到一棵语法分析树，代表输入源代码的抽象语法树。
 
 ## 第四步：定义listener存储规则，使用walker遍历语法树
-
-
 
 1. Listener 存储规则的一个例子：
 
@@ -150,6 +149,10 @@ mdp_listener = gramMDPListener()
 walker = ParseTreeWalker()
 walker.walk(mdp_listener, tree)
 ```
+
+3. 本案例中的:
+
+
 
 ## 本案例中Markov Decision Process的构造：
 
