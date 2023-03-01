@@ -1,0 +1,8 @@
+States S0, S1, S2, W;
+Actions a,b;
+S0[a] -> 1:S1 + 1:W;
+S0[b] -> 3:S2 + 1:S0;
+S1 -> 1:S1;
+S2[a] -> 1:W;
+S2[b] -> 1:S0;
+W -> 1:W;

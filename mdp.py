@@ -100,19 +100,25 @@ class gramMDPListener(gramListener):
         #剩下所有的to_state按顺序
         targets = ids
         total_weights=sum(weights)
-        
+        flag=False
         # 找到当前的name存成一个state
         for state in self.states:
             if state.name==dep:
                 current_state = state
-                
+                flag=True
+                break
+        if not flag : print(f"{dep} is not defined in States")       
         current_state.actions.append(act)
                 
         for i,target in enumerate(targets):
             proba=weights[i]/total_weights
+            flag_target=False 
             for state in self.states:
                 if state.name==target:
                     current_target = state
+                    flag_target=True
+                    break
+            if not flag_target: print(f"{target} is not defined in States")
             if i==0:
                 t_i=Transition(current_state, act)
             t_i.add_tostate(current_target)
@@ -130,17 +136,24 @@ class gramMDPListener(gramListener):
         #剩下所有的to_state按顺序
         targets = ids
         total_weights=sum(weights)
-        
-        #每一个to_state都存成一个transition
+        flag=False
+        # 找到当前的name存成一个state
         for state in self.states:
             if state.name==dep:
                 current_state = state
-                
+                flag=True
+                break
+        if not flag : print(f"{dep} is not defined in States")  
+
         for i,target in enumerate(targets):
             proba=weights[i]/total_weights
+            flag_target=False 
             for state in self.states:
                 if state.name==target:
                     current_target = state
+                    flag_target=True
+                    break
+            if not flag_target: print(f"{target} is not defined in States")
             if not i:
                 t_i=Transition(current_state, None)
             t_i.add_tostate(current_target)
@@ -275,6 +288,7 @@ class MarkovDecisionProcess():
                     break
             if reward_mode and i!=times-1:
                 reward_final+=current.rew
+            print(current.name)
             history.append(current.name)
 
         if reward_mode:
@@ -450,8 +464,8 @@ def main_mdp():
     mdp = mdp_listener.get_mdp()
     mdp.check()
     print(mdp)
-    history,reward=mdp.simulate(10,reward_mode=True)
-    print(history,reward)
+    history=mdp.simulate(10,random_mode=True,reward_mode=False)
+    print(history)
     graphe=StateDiagram(mdp.states,history)
     graphe.load_node(0)
     graphe.load_edge()
@@ -461,7 +475,7 @@ def main_mdp():
     
 if __name__ == '__main__':
     main_mdp()
-    #main_print()
+    # main_print()
 
 
 
