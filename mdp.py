@@ -4,6 +4,8 @@ from gramListener import gramListener
 from gramParser import gramParser
 import sys
 import argparse
+import math
+from math import log
 
 import matplotlib.pyplot as plt
 import random
@@ -188,7 +190,10 @@ class State():
     
     def add_action(self,action):
         self.actions.append(action)
-            
+       
+    def __copy__(self):
+        #todo:
+        pass     
 class Transition():
     """
         定义一个transition
@@ -288,14 +293,69 @@ class MarkovDecisionProcess():
                     break
             if reward_mode and i!=times-1:
                 reward_final+=current.rew
-            print(current.name)
+
             history.append(current.name)
 
         if reward_mode:
             return history,reward_final
         else:
             return history
-      
+    
+    def modify_model(self,state):
+        states=list()
+        for s in self.states:
+            s0=s #todo s.copy
+            if s0.name==state:
+                t=Transition(s0,None)
+                t.add_tostate(s0)
+                t.add_proba(1)
+                s0.transitions=[t]
+            states.append(s0)
+        new_model=MarkovDecisionProcess(states,[])
+        return new_model  
+                
+    def simulate_smc(self,steps,state,precision,taux_error):
+        new_model=self.modify_model(state)
+        times=math.ceil((math.log(2)-math.log(taux_error))/(2*precision)**2)
+        res_times=0
+        for i in range(times):
+            res=new_model.simulate(steps)
+            if res[-1]==state:
+                res_times+=1
+        res_proba=res_times/times
+        return res_proba
+            
+    def simulate_sprt(self,steps,state,epislon,theta,alpha=0.01,beta=0.01):
+        new_model=self.modify_model(state)
+    
+        gamma1=theta-epislon
+        gamma0=theta+epislon
+        
+        FA=log((1-beta)/alpha)
+        FB=log(beta/(1-alpha))
+
+        dm=0
+        m=1
+        end = False
+        Fm=0
+        Vadd=log(gamma1/gamma0)
+        Vrem=log((1-gamma1)/(1-gamma0))
+        while (not end):
+            res=new_model.simulate(steps)
+            m+=1
+            if res[-1]==state :
+                Fm=Fm+Vadd
+                dm+=1
+            else:
+                Fm=Fm+Vrem
+                
+            if Fm>FA:
+                end=True
+                return 'H1'
+            elif Fm<FB:
+                end=True
+                return 'H0'
+        
 class StateDiagram():
     
     """
@@ -464,15 +524,18 @@ def main_mdp():
     walker.walk(mdp_listener, tree)
     mdp = mdp_listener.get_mdp()
     mdp.check()
-    print(mdp)
-    history,reward=mdp.simulate(10,random_mode=False,reward_mode=True)
-    print(history,reward)
-    graphe=StateDiagram(mdp.states,history)
+    print(mdp.simulate_smc(5,'W',0.05,0.01))
+    print(mdp.simulate_sprt(5,'W',0.01,0.16))
+    # print(mdp)
+    # history,reward=mdp.simulate(10,random_mode=False,reward_mode=True)
+    # print(history,reward)
+    
+    #graphe=StateDiagram(mdp.states,history)
     # graphe.load_node(0)
     # graphe.load_edge()
     # graphe.draw()
     # plt.show()
-    graphe.animate()
+    #graphe.animate()
     
 if __name__ == '__main__':
     main_mdp()
