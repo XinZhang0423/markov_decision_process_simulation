@@ -86,6 +86,8 @@ WS: [ \t\n\r\f]+ -> skip ;
 
 ## 第三步：如何调用其读写代码：
 
+
+
 1. 在Python主代码中这里是mdp.py，使用`gramLexer`和`gramParser`类来解析输入的源代码。需要实例化这些类，并调用它们的方法来执行解析操作。具体来说，需要使用以下代码：
 
    ```python
@@ -155,6 +157,165 @@ walker.walk(mdp_listener, tree)
 
 
 ## 本案例中Markov Decision Process的构造：
+
+为了区分两种不同的存储方式，我在noaction的transition是用字典存储的，每个目标状态作为key对应一个概率proba，而在有action的，则是每个action作为key对应一个transition，每一个transition又是一个字典
+
+分成两种类来存：
+
+1. state_mc ： 
+
+- to_states 字典 key： state， value：proba
+
+2. state_mdp ：
+
+- transitions ： 字典 key：action， value：to_states 类似上面的字典
+
+都有parents，列表存它的parents
+
+
+
+# 算法1 simulation 
+
+## 要求： 
+
+给定一个初始状态，和模拟次数，返回经过的状态组成的列表,可以返回reward值
+
+
+
+# model-checking probabiliste
+
+PCTL 概率计算树逻辑 DTMC/MDP 离散时间马尔科夫
+
+# 算法2 Markov chain accessibility
+
+要求：
+给定一个目标状态，和步数，返回经过该步数到达该节点的概率的向量，以字典的形式返回：
+
+key：state.name 
+
+value： proba
+
+方法：
+
+- 简单使用dfs找到s0，s1，s2
+- 根据s2构造A和b，进行迭代即可
+
+
+
+# 算法3 markov decision process accessibility
+
+使用线性规划求解可达性：
+
+将其转化成新型规划问题，如下：
+
+![截屏2023-03-21 14.03.30](/Users/zhangxin/Documents/%E6%88%AA%E5%B1%8F/typora/%E6%88%AA%E5%B1%8F2023-03-21%2014.03.30.png)
+
+等价于一个最优化问题，最后返回以字典的形式返回：
+
+key：state.name 
+
+value： proba
+
+
+
+方法：
+
+- 简单使用dfs找到s0，s1，s2
+- 根据s2构造A和b，然后最优化即可
+
+
+
+# 算法4 计算reward attendu
+
+1. Mc
+
+给定一个target，计算到达这个target获得reward的期望。
+
+因为两个公式高度一致，因此只需要将A和b进行相应改动即可：
+
+- A仍然是转移矩阵
+- b变成了每个节点的reward即可
+
+
+
+2. mdp
+
+
+
+
+
+Continuous Stochastic Logic连续统计逻辑CTMC/PTA
+
+SMC 
+
+- Quantitatif
+- Qualitatif
+
+# 模型验证统计学方法
+
+通过采样计算模型满足某个性质的概率。
+
+四要素：
+
+- 采样sample
+- 概率probability
+- 性质property
+- 准确度precision
+
+
+
+有两种类型的性质：
+
+- 定性分析：直接求出满足相应性质的概率
+- 定量分析：满足相应性质的概率大于某一个值的概率
+
+
+
+# 算法5 smc quantitatif
+
+- Données : Modèle *M*, propriété *ϕ*, précision *ε*, taux d’erreur *δ*
+
+- But : Estimer la probabilité *γ* avec laquelle *M* satisfait *ϕ*
+
+
+
+Monte Carle算法，使用z随机变量用来记录一个réalisation，zi表示第i个réalistaion成功了
+
+Bornes de Chernoff-Hoeffding CH边界定理告诉我们：
+
+<img src="/Users/zhangxin/Documents/%E6%88%AA%E5%B1%8F/typora/%E6%88%AA%E5%B1%8F2023-03-21%2015.01.40.png" alt="截屏2023-03-21 15.01.40" style="zoom:50%;" />
+
+在做过N次试验后，可以保证满足|YN-Y|误差大于epsilon的概率小于precision
+
+
+
+
+
+# 算法6 Sequential Probability Ratio Test
+
+Sequential Probability Ratio Test（序贯概率比检验）是一种用于假设检验的统计方法，它可以帮助我们在样本收集的过程中，根据当前的数据来逐步更新对某个假设的置信度，并决定是否接受或拒绝该假设。
+
+该方法的核心思想是，通过计算在两个假设（H0和H1）下的条件概率比（likelihood ratio），来判断当前观测到的数据更有可能来自哪个假设。具体地说，我们定义两个概率比（likelihood ratio）：a = P(X|H1) / P(X|H0) 和 b = P(X|H0) / P(X|H1)，其中X表示观测到的数据。在一开始，我们设定一个初始的置信度，然后每次根据当前观测到的数据计算出a或b的值，并将其与一个事先设定的阈值进行比较。如果a或b的值超过了阈值，我们就可以得出结论，接受或拒绝某个假设；如果没有超过，我们则需要继续收集数据，以进一步提高置信度。
+
+与传统的假设检验方法相比，Sequential Probability Ratio Test更加适用于需要连续收集数据的情形，因为它可以根据当前的数据情况，灵活地更新置信度，并在收集到足够的数据后做出最终决策。
+
+
+
+# 算法7 动态规划 iteration valeur politique
+
+
+
+
+
+# 算法8 q-learning
+
+
+
+
+
+
+
+
 
 
 

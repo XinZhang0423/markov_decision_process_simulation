@@ -6,6 +6,8 @@ import sys
 import argparse
 import math
 from math import log
+import numpy as np
+
 
 import matplotlib.pyplot as plt
 import random
@@ -85,7 +87,7 @@ class gramMDPListener(gramListener):
     def enterStatenorew(self, ctx):
         #先把状态都初始化出来，默认identity是按顺序的
         self.states = [State(str(x),i) for i,x in enumerate(ctx.ID())]
-        
+    
     def enterDefactions(self, ctx):
         self.actions = [str(x) for x in ctx.ID()]
         
@@ -109,6 +111,7 @@ class gramMDPListener(gramListener):
                 current_state = state
                 flag=True
                 break
+            
         if not flag : print(f"{dep} is not defined in States")       
         current_state.actions.append(act)
                 
@@ -118,6 +121,7 @@ class gramMDPListener(gramListener):
             for state in self.states:
                 if state.name==target:
                     current_target = state
+                    current_target.parents[current_state]=proba
                     flag_target=True
                     break
             if not flag_target: print(f"{target} is not defined in States")
@@ -145,6 +149,7 @@ class gramMDPListener(gramListener):
                 current_state = state
                 flag=True
                 break
+            
         if not flag : print(f"{dep} is not defined in States")  
 
         for i,target in enumerate(targets):
@@ -153,6 +158,7 @@ class gramMDPListener(gramListener):
             for state in self.states:
                 if state.name==target:
                     current_target = state
+                    current_target.parents[current_state]=proba
                     flag_target=True
                     break
             if not flag_target: print(f"{target} is not defined in States")
@@ -177,9 +183,11 @@ class State():
     def __init__(self,name,identity,reward=None):
         self.name=name
         self.id=identity
+        self.to_states=[]
         self.rew=reward
         self.actions=[]
         self.transitions=[]
+        self.parents=dict()
     
     def __str__(self):
         return self.name
@@ -213,6 +221,8 @@ class Transition():
       
     def cumsum_probas(self):
         return list(accumulate(self.probas))
+   
+
         
 class MarkovDecisionProcess():
     """
@@ -248,6 +258,9 @@ class MarkovDecisionProcess():
         return str([s.name for s in self.states])
         
     def check(self):
+        """
+        验证model的合法性，同时返回模型是mc还是mdp，方便后面的计算
+        """
         for state in self.states:
             if state.actions and (len(state.actions)!=len(state.transitions)):
                     print(f"error! {state.name} has a not-welldefined transaction !")                
@@ -256,6 +269,9 @@ class MarkovDecisionProcess():
                     print(f"warning! {state.name}'s {act} is not in defined global actions")
 
     def simulate(self,times,init=None,random_mode=True,reward_mode=False):
+        """
+        给定初始状态init，以及模拟次数，返回模拟历史（state的名字）
+        """
         init=self.init if not init else init
         current=init
         history = []
@@ -301,6 +317,58 @@ class MarkovDecisionProcess():
         else:
             return history
     
+    
+    
+    def reverse_dfs(self,root):
+        """
+        反向dfs，给定目标节点，做反向dfs，
+        使用node_list作open_set
+        使用acces_list作close_set
+        使用sur_list作到达当前节点的概率为1的set
+        """
+        node_list=list()
+        node_list.append(root)
+        acces_list=dict()
+        sur_list=list()
+        while not node_list:
+            current_node=node_list.pop()
+            for parent in current_node.parents:
+                if parent not in acces_list.keys():
+                    node_list.append(parent)
+                    acces_list[parent]=current_node.parents[parent]
+                    
+        pass
+                            
+    
+    def check_access_mc(self,target_state,steps=None):
+        """
+        概率模型检测-马尔科夫链。要求给定一个目标状态，返回各个可以到达目标状态到达该状态的概率
+        """
+        S1=list()
+        S0=list()
+        Si=list()
+        
+        dfs_list=list()
+        dfs_list.append(target_state)
+        S1.append(target_state)
+        current_state=target_state
+        end=False
+        while not end:
+            for parent,proba in current_state.parents.items():
+                if proba==1:
+                    S1.append(parent)
+                
+        
+
+        
+
+    def check_access_mdp(self,):
+        """
+        概率模型检测-马尔科夫决策过程。使用minmax方法？还没明白怎么写
+        """
+        pass
+    
+    
     def modify_model(self,state):
         states=list()
         for s in self.states:
@@ -314,7 +382,7 @@ class MarkovDecisionProcess():
         new_model=MarkovDecisionProcess(states,[])
         return new_model  
                 
-    def simulate_smc(self,steps,state,precision,taux_error):
+    def check_statistic_mc(self,steps,state,precision,taux_error):
         new_model=self.modify_model(state)
         times=math.ceil((math.log(2)-math.log(taux_error))/(2*precision)**2)
         res_times=0
@@ -325,7 +393,7 @@ class MarkovDecisionProcess():
         res_proba=res_times/times
         return res_proba
             
-    def simulate_sprt(self,steps,state,epislon,theta,alpha=0.01,beta=0.01):
+    def check(self,steps,state,epislon,theta,alpha=0.01,beta=0.01):
         new_model=self.modify_model(state)
     
         gamma1=theta-epislon
@@ -355,6 +423,73 @@ class MarkovDecisionProcess():
             elif Fm<FB:
                 end=True
                 return 'H0'
+      
+    def iterations_values(self,gamma,epsilon):
+        nb_states = len(self.states)
+        Vn = dict()
+        for state in self.states:
+            Vn[state.name]=0
+            
+        Vn1 = Vn.copy()
+        end = False
+        nb_iter=0
+        while not end:
+            for state in self.states:
+                V_max = float('-inf')
+                V_current = state.rew
+                for transition in self.transitions:
+                    for i in range(len(transition.to_states)):
+                        V_current+=  gamma * transition.probas[i]*Vn[transition.to_states[i]]
+                    if V_current>V_max:
+                        V_max=V_current
+                Vn1[state]=V_max
+                
+            nb_iter+=1
+            
+            Vn_vector=np.array(list(Vn.values()))
+            Vn1_vector=np.array(list(Vn1.values()))
+            
+            if np.linalg.norm(Vn1_vector-Vn_vector)<epsilon:
+                end=True
+            
+            Vn=Vn1.copy()
+            
+        adversaire = dict() 
+        for state in self.states:
+            V_max = float('-inf')
+            V_current = state.rew
+            action=state.actions[0]
+            for i,transition in self.transitions:
+                for i in range(len(transition.to_states)):
+                    V_current+=  gamma * transition.probas[i]*Vn[transition.to_states[i]]
+                if V_current>V_max:
+                    V_max=V_current
+                    action=self.actions[i]
+            adversaire[state]=action
+            
+        return Vn,adversaire
+    
+    def q_learning(self,gamma,epsilon):
+        Q=initialize()
+        state_t='S1'
+        
+        reverse_alpha=np.zeros((5,2))
+        
+        for i in range(nb_iters):
+            
+            #state_t=chooseState()
+            action_t=chooseAction(Q,state_t,0.1)
+            state_t1,reward=simulate(state_t,action_t)
+            reverse_alpha[index(state_t),index(action_t)]+=1
+            delta=reward+gamma*np.max(Q[index(state_t1),:])-Q[index(state_t),index(action_t)]
+            Q[index(state_t),index(action_t)]+=1/reverse_alpha[index(state_t),index(action_t)]*delta   
+            state_t=state_t1
+        
+        
+        strategy=np.argmax(Q,axis=1)   
+        return Q,strategy
+    
+            
         
 class StateDiagram():
     
