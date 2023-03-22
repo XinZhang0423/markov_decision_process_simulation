@@ -200,6 +200,8 @@ value： proba
 - 简单使用dfs找到s0，s1，s2
 - 根据s2构造A和b，进行迭代即可
 
+使用ex12.mdp验证target改成f值和老师一样
+
 
 
 # 算法3 markov decision process accessibility
@@ -225,6 +227,8 @@ value： proba
 
 
 
+使用ex13.mdp验证，结果不详
+
 # 算法4 计算reward attendu
 
 1. Mc
@@ -245,6 +249,8 @@ value： proba
 
 
 Continuous Stochastic Logic连续统计逻辑CTMC/PTA
+
+
 
 SMC 
 
@@ -269,7 +275,7 @@ SMC
 - 定性分析：直接求出满足相应性质的概率
 - 定量分析：满足相应性质的概率大于某一个值的概率
 
-
+使用simu-mc.mdp验证 0.15
 
 # 算法5 smc quantitatif
 
@@ -277,7 +283,7 @@ SMC
 
 - But : Estimer la probabilité *γ* avec laquelle *M* satisfait *ϕ*
 
-
+使用simu-mc.mdp验证 i=target k=steps theta=proba
 
 Monte Carle算法，使用z随机变量用来记录一个réalisation，zi表示第i个réalistaion成功了
 

@@ -78,7 +78,7 @@ class gramModelListener(gramListener):
             print (f"add a new action {self.actions[0]} in the transitions for {current_state} ")
             current_state.actions.append(self.actions[0])
             current_state.transitions[self.actions[0]]=to_states
-    
+            print(current_state.transitions)
     def enterTransact(self, ctx):
         ids = [str(x) for x in ctx.ID()]
         dep = ids.pop(0)
@@ -110,7 +110,7 @@ class gramModelListener(gramListener):
             if not flag_target: print(f"{target} is not defined in States")
         current_state.actions.append(act)   
         current_state.transitions[act]=to_states
-    
+        print(current_state.transitions)
     def get_mc(self):
         return MarkovChain(self.states)
 
@@ -180,6 +180,7 @@ class MarkovChain(MarkovModel):
         st=super().__str__()
         st+= '\n'
         for s in self.states:
+            st += s.name + ' -> '
             for k,v in s.to_states.items():
                 st +=  str(k) +' : '+ str(v) + ';'
             st+= '\n'
@@ -194,7 +195,7 @@ class MarkovChain(MarkovModel):
         for i in range(steps):
             p=random.uniform(0,1)   
             pc=0
-            for key,ps in enumerate(current.to_states.items()):
+            for key,ps in current.to_states.items():
                 pc+=ps
                 if p<pc:
                     current=key
@@ -215,32 +216,45 @@ class MarkovChain(MarkovModel):
     
         #使用dfs找到s1和s2
         for state in self.states:
-            if state.to_states[state.name] == 1:
-                if state.name!=target:
+            if state.to_states.get(state,0) == 1:
+                if state.name!=target:  
                     s0.append(state)
+                    # print(state.name)
                     #创建堆进行dfs查找
                     dfs_list=list()
                     current_state=state
                     dfs_list.append(state)
-                    while not dfs_list:
+                    while dfs_list:
                         current_state=dfs_list.pop()
                         for parent in current_state.parents:
-                            if parent.to_states[current_state.name]==1 and parent!=state:
+                            if parent.to_states[current_state]==1 and parent!=state:
                                 s0.append(parent)
+                                # print(parent.name)
                                 dfs_list.append(parent)
                                       
                 else:
-                    s1.append(state)                    
+                    s1.append(state) 
+                    # print(state.name)                 
                     dfs_list=list()
                     current_state=state
                     dfs_list.append(state)
-                    while not dfs_list:
+                    while dfs_list:
                         current_state=dfs_list.pop()
                         for parent in current_state.parents:
-                            if parent.to_states[current_state.name]==1 and parent!=state:
-                                s0.append(parent)
+                            if parent.to_states[current_state]==1 and parent!=state:
+                                s1.append(parent)
+                                # print(parent.name)
                                 dfs_list.append(parent)
-        #根据s0，s1构造s2    
+        #根据s0，s1构造s2 
+        print('s0:')
+        for s in s0:
+            print(s.name+' ',end='')
+            
+        print('\ns1:')
+        
+        for s in s1:   
+            print(s.name,end=' ')
+
         for state in self.states:
             if (state not in s0) and (state not in s1):
                 s2.append(state)
@@ -251,20 +265,20 @@ class MarkovChain(MarkovModel):
         
         for i in range(nb_nodes):
             for j in range(nb_nodes):
-                A[i,j]=s2[i].to_states.get(s2[j].name,0)
+                A[i,j]=s2[i].to_states.get(s2[j],0)
                 
         for i in range(nb_nodes):
             for st in s1:
-                b[i,1]+=s2[i].to_states.get(st.name,0)
+                b[i,0]+=s2[i].to_states.get(st,0)
             
-        if not steps:
+        if steps:
             for i in range(steps):
                 y=np.dot(A,y)+b
             res=y
         else:
             id=np.eye(nb_nodes)
             res=np.linalg.solve((id-A),b)
-        
+
         results=dict()
         for i,s in enumerate(s2):
             results[s.name]=res[i]
@@ -344,7 +358,7 @@ class MarkovChain(MarkovModel):
         res_times=0
         for i in range(times):
             res=new_model.simulate(steps)
-            if res[-1]==state:
+            if res[-1]==target:
                 res_times+=1
         res_proba=res_times/times
         return res_proba
@@ -394,7 +408,7 @@ class MarkovDecisionProcess(MarkovModel):
         st=super().__str__()
         st+= '\n'
         for s in self.states:
-            st += s.name + ' '
+            st += s.name + '->'
             for a,t in s.transitions.items():
                 st += str(a) + ': '
                 for k,v in t.items():
@@ -423,11 +437,11 @@ class MarkovDecisionProcess(MarkovModel):
                         act = input("invalid action, please choose again!")
                     except EOFError:
                         print("No input given")   
-                        
+                      
             to_states=current.transitions[act]
             p=random.uniform(0,1)  
             pc=0 
-            for key,ps in enumerate(to_states.items()):
+            for key,ps in to_states.items():
                 pc+=ps
                 if p<pc:
                     current=key
@@ -441,46 +455,44 @@ class MarkovDecisionProcess(MarkovModel):
             return history
      
     def check_access(self,target):
-        s2=[state for state in self.states if state!=target]
+        s2=[state for state in self.states if state.name!=target]
+        s1=[state for state in self.states if state.name==target]
         nb_states=len(s2)
-        A=[]
-        b=[]
+        print(nb_states)
+        A=list()
+        b=list()
         
         for i,state in enumerate(s2):
             nb_actions=len(list(state.transitions.keys()))
             M_current = [[0 for j in range(nb_states)] for i in range(nb_actions+2)]
-            b_current = [[0] for i in range(nb_actions+2)]
+            b_current = [ 0 for i in range(nb_actions+2)]
             b_current[nb_actions]=-1
-            for i,act in enumerate(state.actions):
-                for j in range(nb_states):
-                    M_current[i][j]= - s2[i].transitions[act][s2[j]]
-                    if s2[j]==state:
-                        M_current[i,j]+=1
-                               
-                b_current[i] = state.transitions[act].get(target,0)
+            for j,act in enumerate(state.actions):
+                for k in range(nb_states):
+                    M_current[j][k]= - s2[i].transitions[act].get(s2[k],0)
+                    if s2[k]==state:
+                        M_current[j][k]+=1
+            for t in s1:                
+                b_current[j] += state.transitions[act].get(t,0)
                       
             for j in range(nb_states):
                 if s2[j]==state:
                     M_current[nb_actions][j]=-1
                     M_current[nb_actions+1][j]=1    
-               
-            A=A.extend(M_current)
-            b=b.extend(b_current)
-            
+            A.extend(M_current)
+            b.extend(b_current)
+        print(A)
+        print(b)  
         A=np.array(A)
         b=np.array(b)
         
-        c=np.ones(nb_states,1)
+        c=np.ones((nb_states,1))
         A_ub=-A
         b_ub=-b
         
         res=scipy.optimize.linprog(c,A_ub,b_ub)
-        results=dict()
-        
-        for i,s in enumerate(s2):
-            results[s.name]=res[i]
-            
-        return results
+        print(res)            
+        return res
                             
     def reward_expected(self,target):
         #不会
@@ -504,8 +516,8 @@ class MarkovDecisionProcess(MarkovModel):
                             max = V_current
                 V_next[s.name]=max
             
-            V_vector=np.array(V.values())    
-            V_next_vector=np.array(V_next.values())
+            V_vector=np.array(list(V.values()))  
+            V_next_vector=np.array(list(V_next.values()))
             diff=np.linalg.norm(V_next_vector-V_vector)
             if diff<error:
                 end=True
@@ -528,7 +540,7 @@ class MarkovDecisionProcess(MarkovModel):
     
     def chooseState(self,state):
         
-        if state.transitions[state.actions[0]].values[0] == 1 :
+        if list(state.transitions[state.actions[0]].values())[0] == 1 :
             return self.states[0]
         else: 
             return state
@@ -548,7 +560,7 @@ class MarkovDecisionProcess(MarkovModel):
                     max = value
             return act_max
         
-    def simluate_qlearning(self,state_t,action_t):
+    def simulate_qlearning(self,state_t,action_t):
         p = random.uniform(0,1)
         pc = 0
         for s,ps in state_t.transitions[action_t].items():
@@ -561,9 +573,10 @@ class MarkovDecisionProcess(MarkovModel):
         Q = dict()
         alpha = dict()
         strategy = dict()
+        state_t = self.states[0]
         for s in self.states:
             Q[s.name] = dict.fromkeys(s.actions,0)
-            alpha[s.name]=dict.fromkeys(s.actions,0)
+            alpha[s]=dict.fromkeys(s.actions,0)
             
         for i in range(nb_iters):
             state_t = self.chooseState(state_t)
@@ -573,19 +586,19 @@ class MarkovDecisionProcess(MarkovModel):
             
             Qmax = float('-inf')
             act_max = state_t1.actions[0]
-            for act,val in Q[state_t1].items():
+            for act,val in Q[state_t1.name].items():
                 if val>Qmax:
                     Qmax = val
                     act_max = act
                     
-            delta=reward+gamma*Qmax-Q[state_t][action_t]
-            Q[state_t][action_t]+=1/alpha[state_t][action_t]*delta   
+            delta=reward+gamma*Qmax-Q[state_t.name][action_t]
+            Q[state_t.name][action_t]+=1/alpha[state_t][action_t]*delta   
             state_t=state_t1
         
         for s in self.states:    
             Qmax = float('-inf')
             act_max = s.actions[0]
-            for act,val in Q[state_t1].items():
+            for act,val in Q[state_t1.name].items():
                 if val>Qmax:
                     Qmax = val
                     act_max = act
@@ -624,18 +637,19 @@ def main():
                         print(history)
                         
                 elif option == 'check_access':
-                    results=model.check_access(target='W',steps=10)
+                    results=model.check_access(target='F',steps=None)
                     print(results)
                     
                 elif option == 'reward_expected':
-                    results=model.reward_expected(target='W')
+                    results=model.reward_expected(target='F')
                     print(results)
                     
                 elif option == 'SMC_mc' :
-                    res_proba=model.SMC_quantitatif_mc(steps=1000,target='W',precision=0.01,error=0.01)
+                    res_proba=model.SMC_quantitatif_mc(steps=5,target='S1',precision=0.01,error=0.05)
                     print(res_proba)
+                    
                 elif option == 'SMC_sprt' :
-                    H=model.SMC_qualitatif_sprt(steps=1000,target='W',theta=1,epislon=0.01,alpha=0.01,beta=0.01)
+                    H=model.SMC_qualitatif_sprt(steps=5,target='S1',theta=0.2,epislon=0.01,alpha=0.01,beta=0.01)
                     print(H)
                 elif option == 'exit':
                     break
@@ -652,22 +666,19 @@ def main():
                 if option == 'simulate':
                     model.simulate(steps=10,reward_mode=False,random_mode=True)
                 elif option == 'check_access':
-                    results=model.check_access(target='W')
-                    print(results)
+                    model.check_access(target='T2')
                 elif option == 'iter_val' :
-                    V,G=model.iter_val(gamma=0.5,error=0.1)
+                    V,G=model.iter_val(gamma=0.5,error=1)
                     print(V)
                     print(G)
                     
-                elif option == 'SMC_sprt' :
+                elif option == 'q_learning' :
                     Q,strategy=model.q_learning(gamma=0.5,sigma=0.1,nb_iters=1000)
                     print(Q)
                     print(strategy)
                     
                 elif option == 'exit':
                     break
-
-        
 
 if __name__ == '__main__':
     main() 

@@ -1,0 +1,7 @@
+States T0,T1,T2;
+Actions a,b;
+T0[a] -> 1:T0 + 1:T1;
+T0[b] -> 1:T0;
+T1[a] -> 1:T0;
+T1[b] -> 1:T2;
+T2->1:T2;
