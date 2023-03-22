@@ -540,7 +540,7 @@ class MarkovDecisionProcess(MarkovModel):
     
     def chooseState(self,state):
         
-        if list(state.transitions[state.actions[0]].values())[0] == 1 :
+        if state.transitions[state.actions[0]].get(state,0) == 1 :
             return self.states[0]
         else: 
             return state
@@ -580,17 +580,16 @@ class MarkovDecisionProcess(MarkovModel):
             
         for i in range(nb_iters):
             state_t = self.chooseState(state_t)
+            print(state_t.name,state_t.reward)
             action_t = self.chooseAction(state_t,Q,sigma)
             state_t1,reward = self.simulate_qlearning(state_t,action_t)
             alpha[state_t][action_t]+=1
-            
             Qmax = float('-inf')
-            act_max = state_t1.actions[0]
             for act,val in Q[state_t1.name].items():
                 if val>Qmax:
                     Qmax = val
-                    act_max = act
                     
+                           
             delta=reward+gamma*Qmax-Q[state_t.name][action_t]
             Q[state_t.name][action_t]+=1/alpha[state_t][action_t]*delta   
             state_t=state_t1
@@ -602,15 +601,15 @@ class MarkovDecisionProcess(MarkovModel):
                 if val>Qmax:
                     Qmax = val
                     act_max = act
-            strategy[s.name]=act
+            strategy[s.name]=act_max
         
         return Q,strategy
         
 def main():
     while True:
         
-        filename = input('please enter a filename')
-        mode = input('please enter a mode for model: mc or mdp?')
+        filename = input('please enter a filename ')
+        mode = input('please enter a mode for model: mc or mdp? ')
         
         lexer = gramLexer(FileStream(filename))
         stream = CommonTokenStream(lexer)
@@ -625,7 +624,7 @@ def main():
             model = model_listener.get_mc()
             print(model)
             while True:
-                option=input('simulate, check_access, reward_expected, SMC_mc, SMC_sprt,exit')
+                option=input('simulate, check_access, reward_expected, SMC_mc, SMC_sprt,exit ')
                 if option == 'simulate':
                     reward_mode = False
                     if reward_mode:
@@ -662,7 +661,7 @@ def main():
             model = model_listener.get_mdp()
             print(model)
             while True:
-                option=input('simulate, check_access, iter_val,q_learning')
+                option=input('simulate, check_access, iter_val,q_learning ')
                 if option == 'simulate':
                     model.simulate(steps=10,reward_mode=False,random_mode=True)
                 elif option == 'check_access':
@@ -681,4 +680,19 @@ def main():
                     break
 
 if __name__ == '__main__':
-    main() 
+    # main() 
+    
+    lexer = gramLexer(FileStream("iter_value.mdp"))
+    stream = CommonTokenStream(lexer)
+    parser = gramParser(stream)
+    tree = parser.program()
+    walker = ParseTreeWalker()
+    
+    model_listener =gramModelListener(mode='mdp')
+    walker.walk(model_listener, tree)
+    model = model_listener.get_mdp()
+    for s in model.states:
+        print(s.reward)
+    Q,strategy=model.q_learning(gamma=0.5,sigma=0.1,nb_iters=10000)
+    print(Q)
+    print(strategy)
